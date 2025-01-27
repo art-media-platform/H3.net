@@ -1,4 +1,4 @@
-﻿namespace H3.Data; 
+﻿namespace H3.Data {
 
 public static class LookupTables {
 
@@ -1508,5 +1508,7 @@ public static class LookupTables {
     };
 
     #endregion other
+
+}
 
 }

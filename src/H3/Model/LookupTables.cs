@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using static H3.Constants;
 
-namespace H3.Model; 
+namespace H3.Model {
 
 public static class LookupTables {
 
@@ -1161,5 +1161,7 @@ public static class LookupTables {
     };
 
     #endregion other
+
+}
 
 }

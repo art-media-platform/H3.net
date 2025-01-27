@@ -4,15 +4,13 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using H3.Extensions;
 using H3.Model;
-using static H3.Constants;
 using NetTopologySuite.Algorithm.Locate;
 using NetTopologySuite.Geometries;
 using NetTopologySuite.LinearReferencing;
-
-#nullable enable
+using static H3.Constants;
 
 [assembly: InternalsVisibleTo("H3.Benchmarks")]
-namespace H3.Algorithms; 
+namespace H3.Algorithms {
 
 internal sealed class PositiveLonFilter : ICoordinateSequenceFilter {
 
@@ -228,9 +226,9 @@ public static class Polyfill {
             var vA = coordinates[c];
             var vB = coordinates[c + 1];
             v1.Longitude = vA.X * M_PI_180;
-            v1.Latitude = vA.Y * M_PI_180;
+            v1.Latitude  = vA.Y * M_PI_180;
             v2.Longitude = vB.X * M_PI_180;
-            v2.Latitude = vB.Y * M_PI_180;
+            v2.Latitude  = vB.Y * M_PI_180;
 
             // estimate number of indices between points, use that as a
             // number of segments to chop the line into
@@ -274,5 +272,7 @@ public static class Polyfill {
         var geometry = left.Union(right);
         return geometry.IsEmpty ? originalGeometry : geometry;
     }
+
+}
 
 }

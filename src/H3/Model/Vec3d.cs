@@ -4,9 +4,9 @@ using NetTopologySuite.Geometries;
 using static H3.Constants;
 using static H3.Utils;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class Vec3d {
 
@@ -32,11 +32,11 @@ public sealed class Vec3d {
     public double PointSquareDistance(Vec3d v2) =>
         Square(X - v2.X) + Square(Y - v2.Y) + Square(Z - v2.Z);
 
-    public static Vec3d FromGeoCoord(LatLng coord, Vec3d? result = default) {
+    public static Vec3d FromGeoCoord(LatLng coord, Vec3d result = default) {
         return FromLonLat(coord.Longitude, coord.Latitude, result);
     }
 
-    public static Vec3d FromLonLat(double longitudeRadians, double latitudeRadians, Vec3d? result = default) {
+    public static Vec3d FromLonLat(double longitudeRadians, double latitudeRadians, Vec3d result = default) {
         unchecked {
             var ret = result ?? new Vec3d();
             var r = Math.Cos(latitudeRadians);
@@ -55,8 +55,10 @@ public sealed class Vec3d {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Vec3d a, Vec3d b) => Math.Abs(a.X - b.X) >= EPSILON || Math.Abs(a.Y - b.Y) >= EPSILON || Math.Abs(a.Z - b.Z) >= EPSILON;
 
-    public override bool Equals(object? other) => other is Vec3d v && this == v;
+    public override bool Equals(object other) => other is Vec3d v && this == v;
 
     public override int GetHashCode() => HashCode.Combine(X, Y, Z);
+
+}
 
 }

@@ -4,9 +4,9 @@ using System.Linq;
 using H3.Model;
 using static H3.Constants;
 
-#nullable enable
 
-namespace H3.Extensions;
+
+namespace H3.Extensions {
 
 /// <summary>
 /// Extends the H3Index class with support for vertex functionality.
@@ -86,7 +86,7 @@ public static class H3VertexExtensions {
         if (!index.BaseCell.IsPentagon)
             return ccwRotations;
 
-        PentagonDirectionToFaceMapping? dirFaces = null;
+        PentagonDirectionToFaceMapping dirFaces = null;
 
         // find the appropriate direction-to-face mapping
         for (var p = 0; p < NUM_PENTAGONS; p += 1) {
@@ -165,18 +165,6 @@ public static class H3VertexExtensions {
         return isPentagon
             ? PentagonVertexNumToDirection[(vertexNum + rotations) % NUM_PENT_VERTS]
             : HexVertexNumToDirection[(vertexNum + rotations) % NUM_HEX_VERTS];
-    }
-
-    /// <summary>
-    /// Get a single vertex for a given cell as an H3 index, or
-    /// H3Index.Invalid if the vertex is invalid.
-    /// </summary>
-    /// <param name="cell"></param>
-    /// <param name="vertexNum"></param>
-    /// <returns></returns>
-    [Obsolete("as of 4.0: use CellToVertex instead")]
-    public static H3Index GetVertexIndex(this H3Index cell, int vertexNum) {
-        return cell.CellToVertex(vertexNum);
     }
 
     /// <summary>
@@ -281,31 +269,11 @@ public static class H3VertexExtensions {
     /// </summary>
     /// <param name="cell"></param>
     /// <returns></returns>
-    [Obsolete("as of 4.0: use CellToVertexes instead")]
-    public static IEnumerable<H3Index> GetVertexIndicies(this H3Index cell) {
-        return cell.CellToVertexes();
-    }
-
-    /// <summary>
-    /// Get all vertexes for the given cell.
-    /// </summary>
-    /// <param name="cell"></param>
-    /// <returns></returns>
     public static IEnumerable<H3Index> CellToVertexes(this H3Index cell) {
         var count = cell.IsPentagon ? NUM_PENT_VERTS : NUM_HEX_VERTS;
         for (var i = 0; i < count; i += 1) {
             yield return cell.CellToVertex(i);
         }
-    }
-
-    /// <summary>
-    /// Get the geocoordinates of a H3 vertex index.
-    /// </summary>
-    /// <param name="vertex"></param>
-    /// <returns></returns>
-    [Obsolete("as of 4.0: use VertexToLatLng instead")]
-    public static GeoCoord VertexToGeoCoord(this H3Index vertex) {
-        return (GeoCoord)vertex.ToLatLng();
     }
 
     /// <summary>
@@ -356,5 +324,7 @@ public static class H3VertexExtensions {
         var canonical = owner.CellToVertex(vertexNum);
         return vertex == canonical;
     }
+
+}
 
 }

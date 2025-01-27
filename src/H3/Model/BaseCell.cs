@@ -2,53 +2,53 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class BaseCell {
 
     /// <summary>
     /// The cell number, from 0 - 121.
     /// </summary>
-    public sbyte Cell { get; internal init; }
+    public sbyte Cell;
 
     /// <summary>
     /// The home face and IJK address of the cell.
     /// </summary>
-    public FaceIJK Home { get; internal init; } = null!;
+    public FaceIJK Home;
 
     /// <summary>
     /// Whether or not this base cell is a pentagon.
     /// </summary>
-    public bool IsPentagon { get; internal init; }
+    public bool IsPentagon;
 
     /// <summary>
     /// If a pentagon, the cell's two clockwise offset faces.
     /// </summary>
-    internal sbyte[] ClockwiseOffsetPent { get; init; } = null!;
+    public sbyte[] ClockwiseOffsetPent;
 
     /// <summary>
     /// Whether or not the cell is a polar pentagon.
     /// </summary>
-    public bool IsPolarPentagon { get; internal init; }
+    public bool IsPolarPentagon;
 
     /// <summary>
     /// All of the neighbouring <see cref="BaseCell"/>s of this cell, by
     /// <see cref="Direction"/>.
     /// </summary>
-    public sbyte[] NeighbouringCells { get; internal init; } = null!;
+    public sbyte[] NeighbourCells;
 
     /// <summary>
     /// Indicates the number of counter-clockwise rotations that should
     /// take place to rotate to a given neighbour, by <see cref="Direction"/>.
     /// </summary>
-    public sbyte[] NeighbourRotations { get; internal init; } = null!;
+    public sbyte[] NeighbourRotations;
 
     /// <summary>
     /// A map of neighbour cell number to <see cref="Direction"/>.
     /// </summary>
-    public Dictionary<sbyte, Direction> NeighbourDirections { get; internal init; } = null!;
+    public Dictionary<sbyte, Direction> NeighbourDirections;
 
     /// <summary>
     /// Whether or not the specified <paramref name="face"/> matches one of this
@@ -68,8 +68,8 @@ public sealed class BaseCell {
     /// <param name="direction"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public BaseCell? Neighbour(Direction direction) {
-        var cellNumber = NeighbouringCells[(int)direction];
+    public BaseCell Neighbour(Direction direction) {
+        var cellNumber = NeighbourCells[(int)direction];
         return cellNumber == LookupTables.INVALID_BASE_CELL ? null : BaseCells.Cells[cellNumber];
     }
 
@@ -94,9 +94,9 @@ public sealed class BaseCell {
     /// <param name="b"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(BaseCell? a, BaseCell? b) {
-        if (a is null) return b is null;
-        if (b is null) return false;
+    public static bool operator ==(BaseCell a, BaseCell b) {
+        if (a == null) return b == null;
+        if (b == null) return false;
         return a.Cell == b.Cell;
     }
 
@@ -107,16 +107,18 @@ public sealed class BaseCell {
     /// <param name="b"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(BaseCell? a, BaseCell? b) {
+    public static bool operator !=(BaseCell a, BaseCell b) {
         if (a is null) return b is not null;
         if (b is null) return true;
         return a.Cell != b.Cell;
     }
 
-    public override bool Equals(object? other) {
+    public override bool Equals(object other) {
         return other is BaseCell b && Cell == b.Cell;
     }
 
     public override int GetHashCode() => HashCode.Combine(Cell);
+
+}
 
 }

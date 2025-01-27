@@ -1,10 +1,10 @@
-﻿using System.Text;
-using Microsoft.CodeAnalysis;
+﻿
 
-namespace H3.Data; 
+
+namespace H3.Data {
 
 // TODO rename this to H3IndexBitwiseRotationOpsGenerator?
-
+/*
 [Generator]
 public class H3IndexBitwiseOpsGenerator : ISourceGenerator {
 
@@ -57,18 +57,25 @@ public sealed partial class H3Index {{
             mask <<= 3 * (15 - r);
             mask = ~mask;
 
-            rotateHexCw.Append($"\r\n{_indent}{r} => (Value & {mask}UL) |\r\n");
+            rotateHexCw .Append($"\r\n{_indent}{r} => (Value & {mask}UL) |\r\n");
             rotateHexCcw.Append($"\r\n{_indent}{r} => (Value & {mask}UL) |\r\n");
 
             for (var c = 1; c <= r; c += 1) {
                 var offset = (15 - c) * 3;
                 var eol = c == r ? "," : " |\r\n";
-                rotateHexCw.Append($"{_indent}    ((ulong)((Direction)((Value >> {offset}) & H3_DIGIT_MASK)).RotateClockwise(rotations) << {offset}){eol}");
-                rotateHexCcw.Append($"{_indent}    ((ulong)((Direction)((Value >> {offset}) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << {offset}){eol}");
+                rotateHexCw .Append($"{_indent}    ((ulong)((Direction)((Value >> {offset}) & H3_DIGIT_MASK)).RotateCW(rotations) << {offset}){eol}");
+                rotateHexCcw.Append($"{_indent}    ((ulong)((Direction)((Value >> {offset}) & H3_DIGIT_MASK)).RotateCCW(rotations) << {offset}){eol}");
             }
         }
+        
+        File.WriteAllText("/Users/aomeara/art-media-platform/amp.3D.globe.unity/Assets/H3.net/H3.Data/__hello.txt", "yoyo");
+
+        File.WriteAllText("/Users/aomeara/art-media-platform/amp.3D.globe.unity/Assets/H3.net/H3.Data/H3Index.BitwiseOperations.g.cs", string.Format(TEMPLATE, rotateHexCw, rotateHexCcw));
 
         context.AddSource("H3Index.BitwiseOperations.g.cs", string.Format(TEMPLATE, rotateHexCw, rotateHexCcw));
     }
+
+}
+*/
 
 }

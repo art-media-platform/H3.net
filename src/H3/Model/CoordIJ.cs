@@ -1,8 +1,8 @@
 ﻿using System;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class CoordIJ {
 
@@ -37,4 +37,6 @@ public sealed class CoordIJ {
     }
 
     public override int GetHashCode() => HashCode.Combine(I, J);
+}
+
 }

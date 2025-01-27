@@ -2,9 +2,11 @@
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using System.IO;
 
-namespace H3.Data; 
+namespace H3.Data {
 
+/*
 // TODO use templating for the actual code bits, just feed in vars
 
 [Generator]
@@ -43,15 +45,17 @@ namespace H3.Model {{
             var cell = LookupTables.BaseCells[c];
             cellNames.Append($"{_indent}BaseCell{c}{(c < 121 ? ",\n" : "")}");
 
-            var neighbouringCells = new List<int>();
+            var NeighbourCells = new List<int>();
             var neighbourRotations = new List<int>();
             var neighbourDirections = new Dictionary<sbyte, Direction>();
 
             for (var d = 0; d < 7; d += 1) {
                 var n = (sbyte)LookupTables.Neighbours[c, d];
-                neighbouringCells.Add(n);
+                NeighbourCells.Add(n);
                 neighbourRotations.Add(LookupTables.NeighbourCounterClockwiseRotations[c, d]);
-                if (n != LookupTables.INVALID_BASE_CELL) neighbourDirections[n] = (Direction)d;
+                if (n != LookupTables.INVALID_BASE_CELL) {
+                    neighbourDirections[n] = (Direction)d;
+                }
             }
 
             cells.Append($@"
@@ -64,7 +68,7 @@ namespace H3.Model {{
             IsPentagon = {(cell.IsPentagon ? "true" : "false")},
             IsPolarPentagon = {(c == 4 || c == 117 ? "true" : "false")},
             ClockwiseOffsetPent = {(cell.IsPentagon ? $"new sbyte[] {{ {cell.ClockwiseOffsetPent[0]}, {cell.ClockwiseOffsetPent[1]} }}" : "NotAPentagonOffsets")},
-            NeighbouringCells = new sbyte[] {{ {string.Join(", ", neighbouringCells)} }},
+            NeighbourCells = new sbyte[] {{ {string.Join(", ", NeighbourCells)} }},
             NeighbourRotations = new sbyte[] {{ {string.Join(", ", neighbourRotations)} }},
             NeighbourDirections = new Dictionary<sbyte, Direction> {{
                 {string.Join(", ", neighbourDirections.Select(e => $"{{ {e.Key}, Direction.{e.Value} }}"))}
@@ -72,10 +76,15 @@ namespace H3.Model {{
         }};
 ");
         }
+        
+        File.WriteAllText("BaseCells.cs", string.Format(Template, cells, cellNames));  // FIX ME
 
         context.AddSource("BaseCells.g.cs", string.Format(Template, cells, cellNames));
     }
 
     public void Initialize(GeneratorInitializationContext context) { }
+
+}
+*/
 
 }

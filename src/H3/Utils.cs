@@ -7,7 +7,7 @@ using NetTopologySuite.Geometries;
 using static H3.Constants;
 
 [assembly: InternalsVisibleTo("H3.Test")]
-namespace H3; 
+namespace H3 {
 
 public static class Utils {
 
@@ -22,11 +22,6 @@ public static class Utils {
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ulong GetTopBits(this ulong value, int numBits) => value >> (64 - numBits);
-
-#if NETSTANDARD2_0
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsFinite(this double d) => !double.IsInfinity(d) && !double.IsNaN(d);
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static double Square(double v) => v * v;
@@ -113,23 +108,6 @@ public static class Utils {
     public static bool IsValidChildResolution(int parentResolution, int childResolution) =>
         childResolution >= parentResolution && childResolution <= MAX_H3_RES;
 
-#if NETSTANDARD2_0
-    /// <summary>
-    /// Clamps the specified value between <paramref name="min">min</paramref>
-    /// and <paramref name="max">max</paramref>
-    /// </summary>
-    /// <param name="value">value to clamp</param>
-    /// <param name="min">minimum value</param>
-    /// <param name="max">maximum value</param>
-    /// <returns></returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static T Clamp<T>(T value, T min, T max) where T : IComparable<T> {
-        var result = value;
-        if (value.CompareTo(min) < 0) result = min;
-        if (value.CompareTo(max) > 0) result = max;
-        return result;
-    }
-#endif
 
     /// <summary>
     /// Round implementation which replicates the C away from zero behavior
@@ -151,11 +129,8 @@ public static class Utils {
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static bool IsNegative(double value) =>
-#if NETSTANDARD2_0
-        BitConverter.DoubleToInt64Bits(value) < 0;
-#else
-        double.IsNegative(value);
-#endif
+
+    double.IsNegative(value);
 
 #if !NET5_0_OR_GREATER
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -196,5 +171,7 @@ public static class Utils {
         return x == 0 ? 32 + LeadingZeros((int)(value >> 32)) : LeadingZeros(x);
 #endif
     }
+
+}
 
 }

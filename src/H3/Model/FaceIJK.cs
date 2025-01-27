@@ -4,9 +4,9 @@ using System.Runtime.CompilerServices;
 using static H3.Constants;
 using static H3.Utils;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model { 
 
 public sealed class FaceIJK {
 
@@ -488,5 +488,7 @@ public sealed class FaceIJK {
     public override bool Equals(object? other) => other is FaceIJK f && this == f;
 
     public override int GetHashCode() => HashCode.Combine(Face, Coord);
+
+}
 
 }

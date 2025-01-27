@@ -6,9 +6,9 @@ using NetTopologySuite.Geometries;
 using static H3.Constants;
 using static H3.Utils;
 
-#nullable enable
 
-namespace H3.Extensions;
+
+namespace H3.Extensions { 
 
 public static class H3GeometryExtensions {
 
@@ -22,7 +22,7 @@ public static class H3GeometryExtensions {
     /// conversion (useful to reduce allocations when performing many coordinate conversions);
     /// defaults to a new instance if not provided.</param>
     /// <returns></returns>
-    public static Coordinate ToCoordinate(this H3Index inputIndex, Coordinate? result = default, FaceIJK? toUpdateFaceIjk = default) {
+    public static Coordinate ToCoordinate(this H3Index inputIndex, Coordinate result = default, FaceIJK toUpdateFaceIjk = default) {
         result ??= new Coordinate();
 
         var resolution = inputIndex.Resolution;
@@ -71,13 +71,10 @@ public static class H3GeometryExtensions {
             // not due north or south
             var sinP1Lat = Math.Sin(center.Latitude);
             var cosP1Lat = Math.Cos(center.Latitude);
-            var sinDist = Math.Sin(distance);
-            var cosDist = Math.Cos(distance);
-#if NETSTANDARD2_0
-                var sinLat = Clamp(sinP1Lat * cosDist + cosP1Lat * sinDist * Math.Cos(azimuth), -1.0, 1.0);
-#else
-            var sinLat = Math.Clamp(sinP1Lat * cosDist + cosP1Lat * sinDist * Math.Cos(azimuth), -1.0, 1.0);
-#endif
+            var sinDist  = Math.Sin(distance);
+            var cosDist  = Math.Cos(distance);
+            var sinLat   = Math.Clamp(sinP1Lat * cosDist + cosP1Lat * sinDist * Math.Cos(azimuth), -1.0, 1.0);
+            
             latitude = Math.Asin(sinLat);
 
             if (Math.Abs(latitude - M_PI_2) < EPSILON) {
@@ -90,13 +87,10 @@ public static class H3GeometryExtensions {
                 longitude = 0;
             } else {
                 var cosP2Lat = Math.Cos(latitude);
-#if NETSTANDARD2_0
-                    var sinLon = Clamp(Math.Sin(azimuth) * sinDist / cosP2Lat, -1.0, 1.0);
-                    var cosLon = Clamp((cosDist - sinP1Lat * Math.Sin(latitude)) / cosP1Lat / cosP2Lat, -1.0, 1.0);
-#else
+
                 var sinLon = Math.Clamp(Math.Sin(azimuth) * sinDist / cosP2Lat, -1.0, 1.0);
                 var cosLon = Math.Clamp((cosDist - sinP1Lat * Math.Sin(latitude)) / cosP1Lat / cosP2Lat, -1.0, 1.0);
-#endif
+
                 longitude = ConstrainLongitude(center.Longitude + Math.Atan2(sinLon, cosLon));
             }
         }
@@ -115,13 +109,10 @@ public static class H3GeometryExtensions {
     /// <param name="faceIjk">optional <see cref="FaceIJK"/> instance to re-use for the conversion</param>
     /// <param name="v3d">optional <see cref="Vec3d"/> instance to re-use for the conversion</param>
     /// <returns></returns>
-    public static H3Index ToH3Index(this Coordinate coordinate, int resolution, FaceIJK? faceIjk = default, Vec3d? v3d = default) {
-        if (resolution is < 0 or > MAX_H3_RES) return H3Index.Invalid;
-#if NETSTANDARD2_0
-            if (!coordinate.X.IsFinite() || !coordinate.Y.IsFinite()) return H3Index.Invalid;
-#else
+    public static H3Index ToH3Index(this Coordinate coordinate, int resolution, FaceIJK faceIjk = default, Vec3d v3d = default) {
+
         if (!double.IsFinite(coordinate.X) || !double.IsFinite(coordinate.Y)) return H3Index.Invalid;
-#endif
+        
         return H3Index.FromFaceIJK(
             FaceIJK.FromGeoCoord(
                 coordinate.X * M_PI_180,
@@ -174,13 +165,7 @@ public static class H3GeometryExtensions {
             // We may not use all of the slots in the output array,
             // so fill with invalid values to indicate unused slots
             var result = new int[index.MaximumFaceCount];
-#if NETSTANDARD2_0
-                for (var i = 0; i < index.MaximumFaceCount; i += 1) {
-                    result[i] = -1;
-                }
-#else
             Array.Fill(result, -1);
-#endif
 
             // add each vertex face, using the output array as a hash set
             for (var i = 0; i < vertexCount; i += 1) {
@@ -277,7 +262,7 @@ public static class H3GeometryExtensions {
     /// reducing allocations when producing boundaries for a large number
     /// of indices.</param>
     /// <returns>boundary coordinates</returns>
-    public static IEnumerable<LatLng> GetCellBoundaryVertices(this H3Index index, FaceIJK? toUpdateIjk = default) {
+    public static IEnumerable<LatLng> GetCellBoundaryVertices(this H3Index index, FaceIJK toUpdateIjk = default) {
         var face = index.ToFaceIJK(toUpdateIjk);
         var resolution = index.Resolution;
         return index.IsPentagon
@@ -293,7 +278,7 @@ public static class H3GeometryExtensions {
     /// Polygon instance.  Note that vertex coordinates are provided in EPSG
     /// 4326 (WGS84)</param>
     /// <returns>Polygon for cell boundary</returns>
-    public static Polygon GetCellBoundary(this H3Index index, GeometryFactory? geomFactory = null) {
+    public static Polygon GetCellBoundary(this H3Index index, GeometryFactory geomFactory = null) {
         // get vertices and copy first onto the end to close the hole
         var polyVertices = GetCellBoundaryVertices(index).ToList();
         polyVertices.Add(polyVertices.First());
@@ -310,9 +295,11 @@ public static class H3GeometryExtensions {
     /// <param name="indices"></param>
     /// <param name="geomFactory"></param>
     /// <returns></returns>
-    public static MultiPolygon GetCellBoundaries(this IEnumerable<H3Index> indices, GeometryFactory? geomFactory = null) {
+    public static MultiPolygon GetCellBoundaries(this IEnumerable<H3Index> indices, GeometryFactory geomFactory = null) {
         var gf = geomFactory ?? DefaultGeometryFactory;
         return gf.CreateMultiPolygon(indices.Select(index => index.GetCellBoundary()).ToArray());
     }
+
+}
 
 }

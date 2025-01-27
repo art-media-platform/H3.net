@@ -5,14 +5,13 @@ using static H3.Constants;
 using static H3.Utils;
 using NetTopologySuite.Geometries;
 using System.Runtime.CompilerServices;
-using System.Text.Json.Serialization;
 
-#nullable enable
 
-namespace H3;
 
-[JsonConverter(typeof(H3IndexJsonConverter))]
-public sealed partial class H3Index : IComparable<H3Index> {
+namespace H3 {
+
+public struct H3Index :
+    IComparable<H3Index> {
 
     #region constants
 
@@ -53,7 +52,7 @@ public sealed partial class H3Index : IComparable<H3Index> {
 
     #region properties
 
-    internal ulong Value { get; set; }
+    internal ulong Value;
 
     public BaseCell BaseCell {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,9 +118,6 @@ public sealed partial class H3Index : IComparable<H3Index> {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => Value = (Value & H3_RESERVED_MASK_NEGATIVE) | ((ulong)value << H3_RESERVED_OFFSET);
     }
-
-    [Obsolete("as of 4.0: use IsValidCell instead")]
-    public bool IsValid => IsValidCell;
 
     /// <summary>
     /// Whether or not the index is a valid cell.
@@ -199,16 +195,15 @@ public sealed partial class H3Index : IComparable<H3Index> {
 
     #endregion properties
 
-    public H3Index() {
-        Value = H3_INIT;
-    }
-
     public H3Index(ulong value) {
         Value = value;
     }
 
     public H3Index(string value) {
-        if (ulong.TryParse(value, NumberStyles.HexNumber, null, out var parsed)) Value = parsed;
+        if (ulong.TryParse(value, NumberStyles.HexNumber, null, out var parsed))
+            Value = parsed;
+        else
+            Value = Invalid;
     }
 
     public static H3Index Create(int resolution, int baseCell, Direction direction) {
@@ -219,7 +214,9 @@ public sealed partial class H3Index : IComparable<H3Index> {
             BaseCellNumber = baseCell
         };
 
-        for (var r = 1; r <= resolution; r += 1) index.SetDirectionForResolution(r, direction);
+        for (var r = 1; r <= resolution; r += 1) {
+            index.SetDirectionForResolution(r, direction);
+        }
 
         return index;
     }
@@ -399,11 +396,11 @@ public sealed partial class H3Index : IComparable<H3Index> {
     /// <param name="toUpdateFijk">optional value to update and return
     /// instead of allocating a new address</param>
     /// <returns></returns>
-    public FaceIJK ToFaceIJK(FaceIJK? toUpdateFijk = default) {
+    public FaceIJK ToFaceIJK(FaceIJK toUpdateFijk = default) {
         var index = this;
 
         if (BaseCell.IsPentagon && LeadingNonZeroDirection == Direction.IK) {
-            index = new(this);
+            index = new(this.Value);
             index.RotateClockwise();
         }
 
@@ -459,16 +456,6 @@ public sealed partial class H3Index : IComparable<H3Index> {
     /// <see cref="H3Index"/>
     /// </summary>
     /// <returns>Center point LatLng</returns>
-    [Obsolete("as of 4.0: use ToLatLng instead")]
-    public GeoCoord ToGeoCoord() {
-        return new GeoCoord(ToLatLng());
-    }
-
-    /// <summary>
-    /// Determines the spherical coordinates of the center point of a
-    /// <see cref="H3Index"/>
-    /// </summary>
-    /// <returns>Center point LatLng</returns>
     public LatLng ToLatLng() => ToFaceIJK().ToGeoCoord(Resolution);
 
     /// <summary>
@@ -479,7 +466,7 @@ public sealed partial class H3Index : IComparable<H3Index> {
     /// point; defaults to <see cref="Utils.DefaultGeometryFactory"/>.  Note that
     /// coordinates are provided in degrees and SRS is assumed to be EPSG:4326.</param>
     /// <returns></returns>
-    public Point ToPoint(GeometryFactory? geometryFactory = null) =>
+    public Point ToPoint(GeometryFactory geometryFactory = null) =>
         ToLatLng().ToPoint(geometryFactory);
 
     /// <summary>
@@ -490,7 +477,8 @@ public sealed partial class H3Index : IComparable<H3Index> {
     /// <param name="resolution">The cell resolution</param>
     /// <returns></returns>
     public static H3Index FromFaceIJK(FaceIJK face, int resolution) {
-        if (resolution is < 0 or > MAX_H3_RES) return Invalid;
+        if (resolution < 0 || resolution > MAX_H3_RES)
+            return Invalid;
 
         H3Index index = new() {
             Mode = Mode.Cell,
@@ -498,7 +486,8 @@ public sealed partial class H3Index : IComparable<H3Index> {
         };
 
         if (resolution == 0) {
-            if (face.BaseCellRotation == null || face.Coord.I > MAX_FACE_COORD || face.Coord.J > MAX_FACE_COORD || face.Coord.K > MAX_FACE_COORD) return Invalid;
+            if (face.BaseCellRotation == null || face.Coord.I > MAX_FACE_COORD || face.Coord.J > MAX_FACE_COORD || face.Coord.K > MAX_FACE_COORD)
+                return Invalid;
             index.BaseCellNumber = face.BaseCellRotation.Cell;
             return index;
         }
@@ -571,17 +560,6 @@ public sealed partial class H3Index : IComparable<H3Index> {
         return index;
     }
 
-    /// <summary>
-    /// Encodes a coordinate on the sphere to the H3 index of the containing cell at
-    /// the specified resolution.
-    /// </summary>
-    /// <param name="latLng">The spherical coordinates to encode</param>
-    /// <param name="resolution">The desired H3 resolution for the encoding</param>
-    /// <returns>Returns H3Index.Invalid (H3_NULL) on invalid input</returns>
-    [Obsolete("as of 4.0: use FromLatLng instead")]
-    public static H3Index FromGeoCoord(GeoCoord latLng, int resolution) {
-        return FromLatLng(new LatLng(latLng.Latitude, latLng.Longitude), resolution);
-    }
 
     /// <summary>
     /// Encodes a coordinate on the sphere to the H3 index of the containing cell at
@@ -591,13 +569,12 @@ public sealed partial class H3Index : IComparable<H3Index> {
     /// <param name="resolution">The desired H3 resolution for the encoding</param>
     /// <returns>Returns H3Index.Invalid (H3_NULL) on invalid input</returns>
     public static H3Index FromLatLng(LatLng latLng, int resolution) {
-        if (resolution is < 0 or > MAX_H3_RES) return Invalid;
+        if (resolution < 0 || resolution > MAX_H3_RES)
+            return Invalid;
 
-#if NETSTANDARD2_0
-            if (!latLng.Latitude.IsFinite() || !latLng.Longitude.IsFinite()) return Invalid;
-#else
-        if (!double.IsFinite(latLng.Latitude) || !double.IsFinite(latLng.Longitude)) return Invalid;
-#endif
+        if (!double.IsFinite(latLng.Latitude) || !double.IsFinite(latLng.Longitude))
+            return Invalid;
+
         return FromFaceIJK(FaceIJK.FromGeoCoord(latLng.Longitude, latLng.Latitude, resolution), resolution);
     }
 
@@ -612,39 +589,325 @@ public sealed partial class H3Index : IComparable<H3Index> {
 
     #endregion conversions
 
-    public int CompareTo(H3Index? other) {
+    public int CompareTo(H3Index other) {
         return other == null ? 1 : Value.CompareTo(other.Value);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(H3Index? a, H3Index? b) {
-        if (a is null) return b is null;
-        if (b is null) return false;
-        return a.Value == b.Value;
-    }
+    public static bool operator == (H3Index a, H3Index b) => a.Value == b.Value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(H3Index? a, H3Index? b) {
-        if (a is null) return b is not null;
-        if (b is null) return true;
-        return a.Value != b.Value;
-    }
+    public static bool operator != (H3Index a, H3Index b) => a.Value != b.Value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(H3Index? a, ulong b) {
-        if (a is null) return false;
+    public static bool operator == (H3Index a, ulong b) {
         return a.Value == b;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(H3Index? a, ulong b) {
-        if (a is null) return true;
+    public static bool operator != (H3Index a, ulong b) {
         return a.Value != b;
     }
 
-    public override bool Equals(object? other) => other is H3Index i && Value == i.Value ||
-                                                  other is ulong l && Value == l;
+    public override bool Equals(object other) => other is H3Index i && Value == i.Value ||
+                                                 other is ulong l   && Value == l;
 
     public override int GetHashCode() => Value.GetHashCode();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void RotateClockwise(int rotations) {
+        if (rotations <= 0)
+            return;
+
+        Value = Resolution switch {
+            1 => (Value & 18446713287383973887UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42),
+            2 => (Value & 18446709439093276671UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39),
+            3 => (Value & 18446708958056939519UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36),
+            4 => (Value & 18446708897927397375UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33),
+            5 => (Value & 18446708890411204607UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30),
+            6 => (Value & 18446708889471680511UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27),
+            7 => (Value & 18446708889354239999UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24),
+            8 => (Value & 18446708889339559935UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21),
+            9 => (Value & 18446708889337724927UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18),
+            10 => (Value & 18446708889337495551UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15),
+            11 => (Value & 18446708889337466879UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 12),
+            12 => (Value & 18446708889337463295UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 9),
+            13 => (Value & 18446708889337462847UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 6),
+            14 => (Value & 18446708889337462791UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 6) |
+                ((ulong)((Direction)((Value >> 3) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 3),
+            15 => (Value & 18446708889337462784UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 6) |
+                ((ulong)((Direction)((Value >> 3) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 3) |
+                ((ulong)((Direction)((Value >> 0) & H3_DIGIT_MASK)).RotateClockwise(rotations) << 0),
+            _ => Value
+        };
+    }
+
+    /// <summary>
+    /// Perform in-place 60 degree clockwise rotation(s) of the index.
+    /// </summary>
+    /// <param name="rotations">number of rotations to perform</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void RotateCounterClockwise(int rotations) {
+        if (rotations <= 0)
+            return;
+        Value = Resolution switch {
+            1 => (Value & 18446713287383973887UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42),
+            2 => (Value & 18446709439093276671UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39),
+            3 => (Value & 18446708958056939519UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36),
+            4 => (Value & 18446708897927397375UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33),
+            5 => (Value & 18446708890411204607UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30),
+            6 => (Value & 18446708889471680511UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27),
+            7 => (Value & 18446708889354239999UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24),
+            8 => (Value & 18446708889339559935UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21),
+            9 => (Value & 18446708889337724927UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18),
+            10 => (Value & 18446708889337495551UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15),
+            11 => (Value & 18446708889337466879UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 12),
+            12 => (Value & 18446708889337463295UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 9),
+            13 => (Value & 18446708889337462847UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 6),
+            14 => (Value & 18446708889337462791UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 6) |
+                ((ulong)((Direction)((Value >> 3) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 3),
+            15 => (Value & 18446708889337462784UL) |
+                ((ulong)((Direction)((Value >> 42) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 42) |
+                ((ulong)((Direction)((Value >> 39) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 39) |
+                ((ulong)((Direction)((Value >> 36) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 36) |
+                ((ulong)((Direction)((Value >> 33) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 33) |
+                ((ulong)((Direction)((Value >> 30) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 30) |
+                ((ulong)((Direction)((Value >> 27) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 27) |
+                ((ulong)((Direction)((Value >> 24) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 24) |
+                ((ulong)((Direction)((Value >> 21) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 21) |
+                ((ulong)((Direction)((Value >> 18) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 18) |
+                ((ulong)((Direction)((Value >> 15) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 15) |
+                ((ulong)((Direction)((Value >> 12) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 12) |
+                ((ulong)((Direction)((Value >> 9) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 9) |
+                ((ulong)((Direction)((Value >> 6) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 6) |
+                ((ulong)((Direction)((Value >> 3) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 3) |
+                ((ulong)((Direction)((Value >> 0) & H3_DIGIT_MASK)).RotateCounterClockwise(rotations) << 0),
+            _ => Value
+        };
+    }
+
+
+}
 
 }

@@ -2,9 +2,9 @@
 using System.Runtime.CompilerServices;
 using static H3.Constants;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class Vec2d {
 
@@ -60,4 +60,6 @@ public sealed class Vec2d {
     public override bool Equals(object? other) => other is Vec2d v && this == v;
 
     public override int GetHashCode() => HashCode.Combine(X, Y);
+}
+
 }

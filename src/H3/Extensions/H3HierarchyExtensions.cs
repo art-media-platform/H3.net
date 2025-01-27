@@ -4,9 +4,9 @@ using H3.Model;
 using static H3.Constants;
 using static H3.Utils;
 
-#nullable enable
 
-namespace H3.Extensions; 
+
+namespace H3.Extensions {
 
 /// <summary>
 /// Extends the H3Index class with support for bitwise hierarchical queries.
@@ -30,11 +30,12 @@ public static class H3HierarchyExtensions {
     public static (H3Index, int) GetDirectNeighbour(this H3Index origin, Direction direction, int rotations = 0) {
         H3Index outIndex = new(origin);
 
-        var dir = direction;
+        Direction dir = direction;
         dir = dir.RotateCounterClockwise(rotations);
 
         var oldBaseCell = origin.BaseCell;
-        if (oldBaseCell == null) throw new Exception("origin is not a valid base cell");
+        if (oldBaseCell == null) 
+            throw new Exception("origin not a valid base cell");
 
         var neighbourRotations = 0;
 
@@ -42,16 +43,16 @@ public static class H3HierarchyExtensions {
         var resolution = outIndex.Resolution - 1;
         while (true) {
             if (resolution == -1) {
-                var newBaseCellNumber = oldBaseCell.NeighbouringCells[(sbyte)dir];
-                neighbourRotations = oldBaseCell.NeighbourRotations[(sbyte)dir];
+                var newBaseCellNumber = oldBaseCell.NeighbourCells    [(sbyte)dir];
+                neighbourRotations    = oldBaseCell.NeighbourRotations[(sbyte)dir];
 
                 outIndex.BaseCellNumber = newBaseCellNumber;
 
                 if (newBaseCellNumber == LookupTables.INVALID_BASE_CELL) {
                     // Adjust for the deleted k vertex at the base cell level.
                     // This edge actually borders a different neighbor.
-                    outIndex.BaseCellNumber = oldBaseCell.NeighbouringCells[(sbyte)Direction.IK];
-                    neighbourRotations = oldBaseCell.NeighbourRotations[(sbyte)Direction.IK];
+                    outIndex.BaseCellNumber = oldBaseCell.NeighbourCells    [(sbyte)Direction.IK];
+                    neighbourRotations      = oldBaseCell.NeighbourRotations[(sbyte)Direction.IK];
 
                     // perform the adjustment for the k-subsequence we're skipping
                     // over.
@@ -408,5 +409,7 @@ public static class H3HierarchyExtensions {
     /// <returns></returns>
     public static bool ContainedBy(this H3Index child, H3Index potentialParent) =>
         potentialParent.Contains(child);
+
+}
 
 }

@@ -1,4 +1,4 @@
-﻿namespace H3; 
+﻿namespace H3 {
 
 public class Constants {
     public const double M_PI = 3.14159265358979323846;
@@ -50,4 +50,6 @@ public class Constants {
 
     // maximum number of face coordinates
     public const int MAX_FACE_COORD = 2;
+}
+
 }

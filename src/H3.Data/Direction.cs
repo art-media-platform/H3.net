@@ -1,4 +1,4 @@
-﻿namespace H3.Data; 
+﻿namespace H3.Data {
 
 public enum Direction {
     Center = 0,
@@ -9,4 +9,6 @@ public enum Direction {
     IK = 5,
     IJ = 6,
     Invalid = 7
+}
+
 }

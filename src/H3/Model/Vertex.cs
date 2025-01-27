@@ -1,13 +1,13 @@
 ﻿using System.Linq;
 using static H3.Constants;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public class PentagonDirectionToFaceMapping {
-    public int BaseCellNumber { get; init; }
-    public int[] Faces { get; init; } = new int[NUM_PENT_VERTS];
+    public int BaseCellNumber;
+    public int[] Faces = new int[NUM_PENT_VERTS];
 
     public BaseCell BaseCell => BaseCells.Cells[BaseCellNumber];
 
@@ -26,4 +26,6 @@ public class PentagonDirectionToFaceMapping {
             }
         };
     }
+}
+
 }

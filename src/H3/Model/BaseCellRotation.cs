@@ -1,14 +1,14 @@
 ﻿using System;
 using static H3.Constants;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class BaseCellRotation {
-    public int Cell { get; private init; }
-    public int CounterClockwiseRotations { get; private init; }
-    public BaseCell BaseCell { get; private init; } = null!;
+    public int Cell;
+    public int CounterClockwiseRotations;
+    public BaseCell BaseCell;
 
     public const int InvalidRotations = -1;
 
@@ -36,9 +36,11 @@ public sealed class BaseCellRotation {
         return InvalidRotations;
     }
 
-    public override bool Equals(object? other) => other is BaseCellRotation r &&
+    public override bool Equals(object other) => other is BaseCellRotation r &&
                                                   Cell == r.Cell &&
                                                   CounterClockwiseRotations == r.CounterClockwiseRotations;
 
     public override int GetHashCode() => HashCode.Combine(Cell, CounterClockwiseRotations);
+}
+
 }

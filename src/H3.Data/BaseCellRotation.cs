@@ -1,4 +1,4 @@
-﻿using static H3.Data.Constants;
+﻿using static H3.Constants;
 
 namespace H3.Data {
 

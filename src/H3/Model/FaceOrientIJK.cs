@@ -1,13 +1,13 @@
 ﻿using System;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class FaceOrientIJK {
-    public int Face { get; init; }
-    public CoordIJK Translate { get; init; } = new();
-    public int CounterClockwiseRotations { get; init; }
+    public int Face;
+    public CoordIJK Translate = new();
+    public int CounterClockwiseRotations;
 
     private FaceOrientIJK() { }
 
@@ -26,7 +26,7 @@ public sealed class FaceOrientIJK {
     public static bool operator !=(FaceOrientIJK a, FaceOrientIJK b) =>
         a.Face != b.Face || a.Translate != b.Translate || a.CounterClockwiseRotations != b.CounterClockwiseRotations;
 
-    public override bool Equals(object? other) {
+    public override bool Equals(object other) {
         return other is FaceOrientIJK f && Face == f.Face && Translate == f.Translate &&
                CounterClockwiseRotations == f.CounterClockwiseRotations;
     }
@@ -34,4 +34,6 @@ public sealed class FaceOrientIJK {
     public override int GetHashCode() {
         return HashCode.Combine(Face, Translate, CounterClockwiseRotations);
     }
+}
+
 }

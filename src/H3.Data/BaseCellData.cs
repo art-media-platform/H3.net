@@ -1,4 +1,4 @@
-﻿namespace H3.Data; 
+﻿namespace H3.Data {
 
 /// <summary>
 /// Definition for one of the 122 base cells that form the H3 indexing scheme.
@@ -44,4 +44,5 @@ public sealed class BaseCellData {
             ClockwiseOffsetPent = new[] { tuple.Item4.Item1, tuple.Item4.Item2 }
         };
 
+}
 }

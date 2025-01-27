@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using static H3.Constants;
 
-#nullable enable
 
-namespace H3.Model; 
+
+namespace H3.Model {
 
 public sealed class CoordIJK {
 
@@ -31,7 +31,7 @@ public sealed class CoordIJK {
         K = source.K;
     }
 
-    public static CoordIJK FromVec2d(double x, double y, CoordIJK? destination = default) {
+    public static CoordIJK FromVec2d(double x, double y, CoordIJK destination = default) {
         unchecked {
             var h = destination ?? new CoordIJK();
 
@@ -468,7 +468,7 @@ public sealed class CoordIJK {
     /// <param name="toUpdate">optional instance to update, returns a new
     /// <see cref="CoordIJK"/> instance if not provided.</param>
     /// <returns></returns>
-    public static CoordIJK CubeRound(double i, double j, double k, CoordIJK? toUpdate = default) {
+    public static CoordIJK CubeRound(double i, double j, double k, CoordIJK toUpdate = default) {
         var coord = toUpdate ?? new CoordIJK();
 
         coord.I = (int)Utils.CRound(i);
@@ -502,16 +502,8 @@ public sealed class CoordIJK {
     /// Determines the H3 digit corresponding to a unit vector in ijk coordinates.
     /// </summary>
     /// <param name="h"></param>
-#if NETSTANDARD2_0
-    public static implicit operator Direction(CoordIJK h) {
-        var unitVector = Normalize(h);
-        if (!LookupTables.UnitVectorToDirection.ContainsKey(unitVector)) return Direction.Invalid;
-        return LookupTables.UnitVectorToDirection[unitVector];
-    }
-#else
     public static implicit operator Direction(CoordIJK h) =>
         LookupTables.UnitVectorToDirection.GetValueOrDefault(Normalize(h), Direction.Invalid);
-#endif
 
     /// <summary>
     /// Returns a new ijk coordinate containing the sum of two ijk
@@ -559,20 +551,20 @@ public sealed class CoordIJK {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator ==(CoordIJK? a, CoordIJK? b) {
+    public static bool operator ==(CoordIJK a, CoordIJK b) {
         if (a is null) return b is null;
         if (b is null) return false;
         return a.I == b.I && a.J == b.J && a.K == b.K;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool operator !=(CoordIJK? a, CoordIJK? b) {
+    public static bool operator !=(CoordIJK a, CoordIJK b) {
         if (a is null) return b is not null;
         if (b is null) return true;
         return a.I != b.I || a.J != b.J || a.K != b.K;
     }
 
-    public override bool Equals(object? other) =>
+    public override bool Equals(object other) =>
         other is CoordIJK c && this == c;
 
     public override string ToString() {
@@ -580,5 +572,7 @@ public sealed class CoordIJK {
     }
 
     public override int GetHashCode() => HashCode.Combine(I, J, K);
+
+}
 
 }
